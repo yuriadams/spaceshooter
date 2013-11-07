@@ -1,0 +1,16 @@
+
+
+settings = {
+	orientation =
+	{
+		default = "portrait",
+	},
+	iphone =
+	{
+		plist=
+		{
+			UIAppFonts = { "Arcade.ttf"  }
+			--UIStatusBarHidden=true,
+		},
+	},
+}
