@@ -18,7 +18,8 @@ local waveProgress = 1
 local numHit = 0
 local shipMoveX = 0
 local shipMoveY = 0
-local ship 
+local ship
+local shipenemy 
 local speed = 6 
 local shootbtn
 local numEnemy = 0
@@ -104,17 +105,6 @@ local function createWalls(event)
     ship.y = display.contentHeight
   end
 end
-
-function loadGame()
-  ship = nil
-  leftArrow = nil
-  rightArrow = nil
-  shootbtn = nil
-  createShip()
-  createGamePad()
-  createScore()
-  createInitialScreen() 
-end
 	
 function createShip()
 	ship = display.newImage ("spaceship.png")
@@ -166,21 +156,20 @@ function createEnemy()
 	numEnemy = numEnemy +1 
 
 	print(numEnemy)
-			enemies:toFront()
-			enemyArray[numEnemy]  = display.newImage("enemy.png")
-			physics.addBody ( enemyArray[numEnemy] , {density=0.5, friction=0, bounce=0})
-			enemyArray[numEnemy] .myName = "enemy" 
-			startlocationX = math.random (0, display.contentWidth)
-			enemyArray[numEnemy] .x = startlocationX
-			startlocationY = math.random (-500, -100)
-			enemyArray[numEnemy] .y = startlocationY
-		
-			transition.to ( enemyArray[numEnemy] , { time = math.random (12000, 20000), x= math.random (0, display.contentWidth ), y=ship.y+500 } )
-			enemies:insert(enemyArray[numEnemy] )
+	enemies:toFront()
+	enemyArray[numEnemy]  = display.newImage("enemy.png")
+	physics.addBody ( enemyArray[numEnemy] , {density=0.5, friction=0, bounce=0})
+	enemyArray[numEnemy] .myName = "enemy" 
+	startlocationX = math.random (0, display.contentWidth)
+	enemyArray[numEnemy] .x = startlocationX
+	startlocationY = math.random (-500, -100)
+	enemyArray[numEnemy] .y = startlocationY
+
+	transition.to ( enemyArray[numEnemy] , { time = math.random (12000, 20000), x= math.random (0, display.contentWidth ), y=ship.y+500 } )
+	enemies:insert(enemyArray[numEnemy] )
 end
 
 function createAmmo()
-	
 		ammo = display.newImage("ammo.png")
 		physics.addBody ( ammo,  {density=0.5, friction=0, bounce=0 })
 		ammo.myName = "ammo" 
@@ -191,36 +180,29 @@ function createAmmo()
 		
 		transition.to ( ammo, {time = math.random (5000, 10000 ), x= math.random (0, display.contentWidth ), y=ship.y+500 } ) 
 	
-		local function rotationAmmo ()
-		ammo.rotation = ammo.rotation + 45
-		end
-
-		rotationTimer = timer.performWithDelay(200, rotationAmmo, -1)
-		
-		
+		-- local function rotationAmmo ()
+--       ammo.rotation = ammo.rotation + 45
+--     end
+-- 
+--     rotationTimer = timer.performWithDelay(200, rotationAmmo, -1)
 end
 
-	function shoot(event)
-		
-		if (numBullets ~= 0) then
-			numBullets = numBullets - 1
-			local bullet = display.newImage("bullet.png")
-			physics.addBody(bullet, "static", {density = 1, friction = 0, bounce = 0});
-			bullet.x = ship.x 
-			bullet.y = ship.y 
-			bullet.myName = "bullet"
-			textBullets.text = "Bullets "..numBullets
-			transition.to ( bullet, { time = 1000, x = ship.x, y =-100} )
-			audio.play(shot)
-		end 
-		
-	end
- 
+function shoot(event)
+	if (numBullets ~= 0) then
+		numBullets = numBullets - 1
+		local bullet = display.newImage("bullet.png")
+		physics.addBody(bullet, "static", {density = 1, friction = 0, bounce = 0});
+		bullet.x = ship.x 
+		bullet.y = ship.y 
+		bullet.myName = "bullet"
+		textBullets.text = "Bullets "..numBullets
+		transition.to ( bullet, { time = 1000, x = ship.x, y =-100} )
+		audio.play(shot)
+	end 
+end
 
 function onCollision(event)
 	if(event.object1.myName =="ship" and event.object2.myName =="enemy") then	
-			
-			
 			local function setgameOver()
 			gameovertxt = display.newText(  "Game Over", cWidth-110, cHeight-100, "Arcade", 50 )
 			gameovertxt:addEventListener("tap",  newGame)
@@ -241,11 +223,11 @@ function onCollision(event)
 		
 		end
 		transition.to( ship, { time=500, xScale = 1.2, yScale = 1.2, onComplete = sizeBack  } )
-		numBullets = numBullets + 3 
+		numBullets = numBullets + 2 
 		textBullets.text = "Bullets "..numBullets
 		event.object2:removeSelf()
 		event.object2.myName=nil
-		timer.cancel(rotationTimer)
+    -- timer.cancel(rotationTimer)
 		audio.play(ammosnd)
 		
 	end
@@ -335,6 +317,16 @@ function createInitialScreen()
   telaInicial:addEventListener("tap",  newGame)
 end
 
+function loadGame()
+  ship = nil
+  leftArrow = nil
+  rightArrow = nil
+  shootbtn = nil
+  createShip()
+  createGamePad()
+  createScore()
+end
+
 function nextWave (event)
 	display.remove(event.target)
 	numHit = 0
@@ -342,19 +334,70 @@ function nextWave (event)
   loadGame()
 end
 
+function nextWaveBigBoss(event)
+	display.remove(event.target)
+  numHit = 10
+  -- gameActive = true
+  createShipEnemy()
+  loadGame()
+end
+
+function createShipEnemy()
+  startlocationX = math.random (0, display.contentWidth)
+
+	shipenemy = display.newImage ("shipenemy.png")
+	physics.addBody(shipenemy, "static", {density = 1, friction = 0, bounce = 0});
+	shipenemy.x = startlocationX
+	shipenemy.y = display.contentHeight - 440
+	shipenemy.myName = "shipenemy"
+  startTransition()
+  startBulletEnemy()
+end
+
+
+local function goBack( )
+  transition.to ( shipenemy , { time = 7000, x= 0, y=shipenemy.y, onComplete = startTransition } )
+end
+
+function startTransition( )
+  transition.to ( shipenemy , { time = 7000, x= display.contentWidth, y=shipenemy.y, onComplete = goBack } )
+end
+
+function startBulletEnemy( )
+	bulletenemy = display.newImage("bullet.png")
+	physics.addBody(bulletenemy, "static", {density = 1, friction = 0, bounce = 0});
+	bulletenemy.x = shipenemy.x 
+	bulletenemy.y = shipenemy.y 
+	bulletenemy.myName = "bulletenemy"
+  audio.play(shot)
+  transition.to ( bulletenemy, { time = 3000, x = shipenemy.x, y=ship.y+350, onComplete = startBulletEnemy} )
+end
+
+
 local function checkforProgress()
-		if numHit == waveProgress then
-			gameActive = false
-			audio.play(wavesnd)
-			removeEnemies()
+  if numHit == waveProgress then
+    if waveProgress == 6 then
+      gameActive = false  
+      audio.play(wavesnd)
+  		removeEnemies()
+      background = display.newImage("spacebackgroundblack.png")
+      background = display.newImage("spacebackgroudhell.jpg")
+      waveProgress = waveProgress + 1
+      waveTxt2 = display.newText(  "Prepare for the real battle! ", cWidth-140, cHeight-100, nil, 20 ) 
+      waveTxt2:addEventListener("tap",  nextWaveBigBoss)
+    else
+  		gameActive = false
+      audio.play(wavesnd)
+  		removeEnemies()
       imagePath = "spacebackground" .. waveProgress .. ".jpg" 
       background = display.newImage("spacebackgroundblack.png")
       background = display.newImage(imagePath) 
-			waveTxt = display.newText(  "Wave "..waveProgress.. " Completed", cWidth-80, cHeight-100, nil, 20 )
-			waveProgress = waveProgress + 1
-			textWave.text = "Wave: "..waveProgress
-			print("wavenumber "..waveProgress)
-			waveTxt:addEventListener("tap",  nextWave)
+  		waveTxt = display.newText(  "Wave "..waveProgress.. " Completed", cWidth-80, cHeight-100, nil, 20 )
+  		waveProgress = waveProgress + 1
+  		textWave.text = "Wave: "..waveProgress
+  		print("wavenumber "..waveProgress)
+  		waveTxt:addEventListener("tap",  nextWave)
+    end
 end
 	
 	-- remove enemies which are not shot
@@ -387,6 +430,7 @@ end
 function startGame()
 loadGame()
 backgroundMusic()
+createInitialScreen()
 
 shootbtn:addEventListener ( "tap", shoot )
 rightArrow:addEventListener ("touch", rightArrowtouch)
