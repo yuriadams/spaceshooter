@@ -7,7 +7,7 @@ local cHeight = display.contentCenterY
 -- physics
 local physics = require("physics")
 physics.start()
-physics.setGravity( 0,0)
+physics.setGravity(0,0)
 
 -- groups
 local enemies = display.newGroup()
@@ -36,7 +36,9 @@ local removeEnemies
 local createGame
 local createEnemy
 local shoot
+local startBulletEnemy
 local createShip
+local createShipEnemy
 local newGame
 local gameOver
 local nextWave
@@ -201,53 +203,13 @@ function shoot(event)
 	end 
 end
 
-function onCollision(event)
-	if(event.object1.myName =="ship" and event.object2.myName =="enemy") then	
-			local function setgameOver()
-			gameovertxt = display.newText(  "Game Over", cWidth-110, cHeight-100, "Arcade", 50 )
-			gameovertxt:addEventListener("tap",  newGame)
-			end
-			-- use setgameover after transition complete to avoid that user clicks gameover before the transition is completed
-			transition.to( ship, { time=1500, xScale = 0.4, yScale = 0.4, alpha=0, onComplete=setgameOver  } )
-			gameActive = false
-			removeEnemies()
-			audio.fadeOut(backgroundsnd)
-			audio.rewind (backgroundsnd)
-			
-	end	
-	
-	if(event.object1.myName =="ship" and event.object2.myName =="ammo") then
-		local function sizeBack()
-		ship.xScale = 0.6
-		ship.yScale = 0.6 
-		
-		end
-		transition.to( ship, { time=500, xScale = 1.2, yScale = 1.2, onComplete = sizeBack  } )
-		numBullets = numBullets + 2 
-		textBullets.text = "Bullets "..numBullets
-		event.object2:removeSelf()
-		event.object2.myName=nil
-    -- timer.cancel(rotationTimer)
-		audio.play(ammosnd)
-		
-	end
-
-	if((event.object1.myName=="enemy" and event.object2.myName=="bullet") or 
-		(event.object1.myName=="bullet" and event.object2.myName=="enemy")) then
-			event.object1:removeSelf()
-			event.object1.myName=nil
-			event.object2:removeSelf()
-			event.object2.myName=nil
-			score = score + 10
-			textScore.text = "Score: "..score
-			numHit = numHit + 1
-			print ("numhit "..numHit)
-			end
-	
-	
-end
-
 function removeEnemies()
+  if(shipenemy ~= nil ) then
+    shipenemy:removeSelf()
+    shipenemy.myName = nil
+    shipenemy = nil
+  end
+  
 	for i =1, #enemyArray do
 		if (enemyArray[i].myName ~= nil) then
 		enemyArray[i]:removeSelf()
@@ -337,7 +299,7 @@ end
 function nextWaveBigBoss(event)
 	display.remove(event.target)
   numHit = 10
-  -- gameActive = true
+  gameActive = true
   createShipEnemy()
   loadGame()
 end
@@ -346,7 +308,7 @@ function createShipEnemy()
   startlocationX = math.random (0, display.contentWidth)
 
 	shipenemy = display.newImage ("shipenemy.png")
-	physics.addBody(shipenemy, "static", {density = 1, friction = 0, bounce = 0});
+  physics.addBody(shipenemy, {density=0.5, friction=0, bounce=0});
 	shipenemy.x = startlocationX
 	shipenemy.y = display.contentHeight - 440
 	shipenemy.myName = "shipenemy"
@@ -356,27 +318,34 @@ end
 
 
 local function goBack( )
-  transition.to ( shipenemy , { time = 7000, x= 0, y=shipenemy.y, onComplete = startTransition } )
+  if(shipenemy ~= nil ) then
+    transition.to ( shipenemy , { time = 7000, x= 0, y=shipenemy.y, onComplete = startTransition } )
+  end
 end
 
 function startTransition( )
-  transition.to ( shipenemy , { time = 7000, x= display.contentWidth, y=shipenemy.y, onComplete = goBack } )
+  if(shipenemy ~= nil ) then
+    transition.to ( shipenemy , { time = 7000, x= display.contentWidth, y=shipenemy.y, onComplete = goBack } )
+  end
 end
 
 function startBulletEnemy( )
-	bulletenemy = display.newImage("bullet.png")
-	physics.addBody(bulletenemy, "static", {density = 1, friction = 0, bounce = 0});
-	bulletenemy.x = shipenemy.x 
-	bulletenemy.y = shipenemy.y 
-	bulletenemy.myName = "bulletenemy"
-  audio.play(shot)
-  transition.to ( bulletenemy, { time = 3000, x = shipenemy.x, y=ship.y+350, onComplete = startBulletEnemy} )
+  if(shipenemy ~= nil ) then
+  	bulletenemy = display.newImage("missile.png")
+    physics.addBody(bulletenemy, {density = 0.5, friction = 0, bounce = 0});
+  	bulletenemy.x = shipenemy.x 
+  	bulletenemy.y = shipenemy.y
+    bulletenemy.xScale = 0.6
+    bulletenemy.yScale = 0.6 
+  	bulletenemy.myName = "bulletenemy"
+    audio.play(shot)
+    transition.to ( bulletenemy, { time = 25000, x = shipenemy.x, y=ship.y+250, onComplete = startBulletEnemy} )
+  end
 end
-
 
 local function checkforProgress()
   if numHit == waveProgress then
-    if waveProgress == 6 then
+    if waveProgress == 1 then
       gameActive = false  
       audio.play(wavesnd)
   		removeEnemies()
@@ -398,9 +367,7 @@ local function checkforProgress()
   		print("wavenumber "..waveProgress)
   		waveTxt:addEventListener("tap",  nextWave)
     end
-end
-	
-	-- remove enemies which are not shot
+end	
 	
 	for i =1, #enemyArray do
 		if (enemyArray[i].myName ~= nil) then
@@ -420,7 +387,75 @@ end
 	end
 end
 
--- play background music
+function onCollision(event)  
+	if(event.object1.myName =="ship" and event.object2.myName =="enemy") then	
+      local function setgameOver()
+        gameovertxt = display.newText(  "Game Over", cWidth-110, cHeight-100, "Arcade", 50 )
+        numHit = 0
+        gameovertxt:addEventListener("tap",  newGame)
+      end
+      transition.to( ship, { time=1500, xScale = 0.4, yScale = 0.4, alpha=0, onComplete=setgameOver  } )
+      gameActive = false
+      removeEnemies()
+      audio.fadeOut(backgroundsnd)
+      audio.rewind (backgroundsnd)
+	end	
+  
+	if(event.object1.myName =="ship" and event.object2.myName =="ammo") then
+		local function sizeBack()
+		  ship.xScale = 0.6
+		  ship.yScale = 0.6 
+		end
+    
+		transition.to( ship, { time=500, xScale = 1.2, yScale = 1.2, onComplete = sizeBack  } )
+		numBullets = numBullets + 2 
+		textBullets.text = "Bullets "..numBullets
+		event.object2:removeSelf()
+		event.object2.myName=nil
+    -- timer.cancel(rotationTimer)
+		audio.play(ammosnd)
+		
+	end
+
+	if((event.object1.myName=="enemy" and event.object2.myName=="bullet") or (event.object1.myName=="bullet" and event.object2.myName=="enemy")) then
+			event.object1:removeSelf()
+			event.object1.myName=nil
+			event.object2:removeSelf()
+			event.object2.myName=nil
+			score = score + 10
+			textScore.text = "Score: "..score
+			numHit = numHit + 1
+			print ("numhit "..numHit)
+	end
+  
+  if((event.object1.myName =="bulletenemy" and event.object2.myName =="ship") or (event.object1.myName =="ship" and event.object2.myName =="bulletenemy")) then  
+      local function setgameOver()
+        gameovertxt = display.newText(  "Game Over", cWidth-110, cHeight-100, "Arcade", 50 )
+        numHit = 0
+        gameovertxt:addEventListener("tap",  newGame)
+      end
+      transition.to( ship, { time=1500, xScale = 0.4, yScale = 0.4, alpha=0, onComplete=setgameOver  } )
+      gameActive = false
+      removeEnemies()
+      audio.fadeOut(backgroundsnd)
+      audio.rewind (backgroundsnd)
+  end  
+  
+  if((event.object1.myName=="shipenemy" and event.object2.myName=="bullet") or (event.object1.myName=="bullet" and event.object2.myName=="shipenemy")) then
+    local function youWin()
+      youwintxt = display.newText(  "You Win!!!! ", cWidth-110, cHeight-100, "Arcade", 50 )
+      numHit = 0
+      youwintxt:addEventListener("tap",  newGame)
+    end
+
+    transition.to( ship, { time=1500, xScale = 0.4, yScale = 0.4, alpha=0, onComplete=youWin  } )
+    gameActive = false
+    removeEnemies()
+    audio.fadeOut(backgroundsnd)
+    audio.rewind (backgroundsnd)
+  end
+end
+
 function backgroundMusic()
 	audio.play (backgroundsnd, { loops = -1})
 	audio.setVolume(0.5, {backgroundsnd} ) 	
