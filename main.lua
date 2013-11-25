@@ -345,7 +345,7 @@ end
 
 local function checkforProgress()
   if numHit == waveProgress then
-    if waveProgress == 1 then
+    if waveProgress == 6 then
       gameActive = false  
       audio.play(wavesnd)
   		removeEnemies()
